@@ -1,11 +1,8 @@
 #include <iostream>
 #include <random>
 #include <chrono>
-#include <unordered_set>
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cctype>
 #include <iomanip>
 
 std::string generate_random_string(std::mt19937& gen, std::uniform_int_distribution<>& dist, const std::string& chars, int length) {
@@ -29,7 +26,7 @@ std::string determine_character_set(const std::string& target) {
         else if (std::isdigit(c)) {
             has_digits = true;
         }
-        else {
+        else if (!std::isspace(c)) {
             has_symbols = true;
         }
     }
@@ -87,6 +84,16 @@ std::string format_large_number(long long number) {
     return oss.str();
 }
 
+std::string remove_spaces(const std::string& str) {
+    std::string result;
+    for (char c : str) {
+        if (!std::isspace(c)) {
+            result += c;
+        }
+    }
+    return result;
+}
+
 int main(int argc, char* argv[]) {
     std::string target_input;
 
@@ -98,12 +105,7 @@ int main(int argc, char* argv[]) {
         target_input = argv[1];
     }
 
-    std::istringstream stream(target_input);
-    std::string word;
-    std::unordered_set<std::string> target_words;
-    while (stream >> word) {
-        target_words.insert(word);
-    }
+    target_input = remove_spaces(target_input);
 
     std::string char_set = determine_character_set(target_input);
     if (char_set.empty()) {
@@ -124,22 +126,19 @@ int main(int argc, char* argv[]) {
     bool found_match = false;
 
     while (!found_match) {
-        for (const std::string& target_word : target_words) {
-            int string_length = target_word.length();
-            std::string random_str = generate_random_string(gen, dist, char_set, string_length);
-            generated_attempts++;
+        int string_length = target_input.length();
+        std::string random_str = generate_random_string(gen, dist, char_set, string_length);
+        generated_attempts++;
 
-            if (random_str == target_word) {
-                std::cout << "Match found: " << random_str << " at attempt " << format_large_number(generated_attempts) << std::endl;
-                found_match = true;
-                break;
-            }
+        if (random_str == target_input) {
+            std::cout << "Match found: " << random_str << " at attempt " << format_large_number(generated_attempts) << std::endl;
+            found_match = true;
+        }
 
-            if (generated_attempts % 1'000'000 == 0) {
-                auto current_time = std::chrono::high_resolution_clock::now();
-                std::chrono::duration<double> elapsed = current_time - start_time;
-                std::cout << "Generated " << format_large_number(generated_attempts) << " attempts in " << format_duration(elapsed.count()) << ".\n";
-            }
+        if (generated_attempts % 1'000'000 == 0) {
+            auto current_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = current_time - start_time;
+            std::cout << "Generated " << format_large_number(generated_attempts) << " attempts in " << format_duration(elapsed.count()) << ".\n";
         }
     }
 
