@@ -4,69 +4,17 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
+#include <algorithm>
 
-std::string generate_random_string(std::mt19937& gen, std::uniform_int_distribution<>& dist, const std::string& chars, int length) {
-    std::string result(length, '\0');
-    for (int i = 0; i < length; ++i) {
-        int rand_val = dist(gen);
-        result[i] = chars[rand_val];
-    }
-    return result;
-}
-
-std::string determine_character_set(const std::string& target) {
-    bool has_letters = false;
-    bool has_digits = false;
-    bool has_symbols = false;
-
-    for (char c : target) {
-        if (std::isalpha(c)) {
-            has_letters = true;
-        }
-        else if (std::isdigit(c)) {
-            has_digits = true;
-        }
-        else if (!std::isspace(c)) {
-            has_symbols = true;
-        }
-    }
-
-    std::string char_set;
-    if (has_letters) {
-        char_set += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    }
-    if (has_digits) {
-        char_set += "0123456789";
-    }
-    if (has_symbols) {
-        char_set += "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-    }
-
-    return char_set;
-}
-
-std::string format_duration(double seconds) {
-    int years = static_cast<int>(seconds / 31536000);
-    seconds -= years * 31536000;
-    int days = static_cast<int>(seconds / 86400);
-    seconds -= days * 86400;
-    int hours = static_cast<int>(seconds / 3600);
-    seconds -= hours * 3600;
-    int minutes = static_cast<int>(seconds / 60);
-    seconds -= minutes * 60;
-    int secs = static_cast<int>(seconds);
-
+std::string format_with_commas(long long number) {
     std::ostringstream oss;
-    if (years > 0) oss << years << "y ";
-    if (days > 0 || years > 0) oss << days << "d ";
-    if (hours > 0 || days > 0 || years > 0) oss << hours << "h ";
-    if (minutes > 0 || hours > 0 || days > 0 || years > 0) oss << minutes << "m ";
-    oss << secs << "s";
-
+    oss.imbue(std::locale(""));
+    oss << number;
     return oss.str();
 }
 
-std::string format_large_number(long long number) {
+std::string format_large_number(double number) {
     std::ostringstream oss;
     if (number >= 1'000'000'000) {
         oss << std::fixed << std::setprecision(3) << (number / 1'000'000'000.0) << "B";
@@ -78,19 +26,65 @@ std::string format_large_number(long long number) {
         oss << std::fixed << std::setprecision(3) << (number / 1'000.0) << "K";
     }
     else {
-        oss << number;
+        oss << format_with_commas(static_cast<long long>(number));
     }
+    return oss.str();
+}
 
+std::string format_odds(double odds) {
+    std::ostringstream oss;
+    if (odds < 1) {
+        oss << "1 in " << format_large_number(static_cast<long long>(1 / odds));
+    }
+    else {
+        oss << "1 in " << format_large_number(static_cast<long long>(odds));
+    }
+    return oss.str();
+}
+
+std::string generate_random_string(std::mt19937& gen, std::uniform_int_distribution<>& dist, const std::string& chars, int length) {
+    std::string result(length, '\0');
+    std::generate(result.begin(), result.end(), [&]() { return chars[dist(gen)]; });
+    return result;
+}
+
+std::string determine_character_set(const std::string& target) {
+    std::string char_set;
+    if (std::any_of(target.begin(), target.end(), ::isalpha)) {
+        char_set += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    }
+    if (std::any_of(target.begin(), target.end(), ::isdigit)) {
+        char_set += "0123456789";
+    }
+    if (std::any_of(target.begin(), target.end(), [](char c) { return !std::isspace(c) && !std::isalnum(c); })) {
+        char_set += "!\"#$%&'()*+,-./:;<=>?@[\\]^_{|}~";
+    }
+    return char_set;
+}
+
+std::string format_duration(double seconds) {
+    int years = static_cast<int>(seconds / 31'536'000);
+    seconds -= years * 31'536'000;
+    int days = static_cast<int>(seconds / 86'400);
+    seconds -= days * 86'400;
+    int hours = static_cast<int>(seconds / 3'600);
+    seconds -= hours * 3'600;
+    int minutes = static_cast<int>(seconds / 60);
+    seconds -= minutes * 60;
+    int secs = static_cast<int>(seconds);
+
+    std::ostringstream oss;
+    if (years > 0) oss << years << "y ";
+    if (days > 0 || years > 0) oss << days << "d ";
+    if (hours > 0 || days > 0 || years > 0) oss << hours << "h ";
+    if (minutes > 0 || hours > 0 || days > 0 || years > 0) oss << minutes << "m ";
+    oss << secs << "s";
     return oss.str();
 }
 
 std::string remove_spaces(const std::string& str) {
     std::string result;
-    for (char c : str) {
-        if (!std::isspace(c)) {
-            result += c;
-        }
-    }
+    std::copy_if(str.begin(), str.end(), std::back_inserter(result), [](char c) { return !std::isspace(c); });
     return result;
 }
 
@@ -113,6 +107,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    int string_length = target_input.length();
+    double total_combinations = std::pow(char_set.size(), string_length);
+    double probability_of_success = 1.0 / total_combinations;
+
+    std::cout << "Odds of finding the string in 1 attempt: " << format_odds(total_combinations) << "\n";
+
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(0, char_set.size() - 1);
@@ -126,7 +126,6 @@ int main(int argc, char* argv[]) {
     bool found_match = false;
 
     while (!found_match) {
-        int string_length = target_input.length();
         std::string random_str = generate_random_string(gen, dist, char_set, string_length);
         generated_attempts++;
 
