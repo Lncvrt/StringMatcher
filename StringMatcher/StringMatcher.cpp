@@ -16,14 +16,23 @@ std::string format_with_commas(long long number) {
 
 std::string format_large_number(double number) {
     std::ostringstream oss;
-    if (number >= 1'000'000'000) {
-        oss << std::fixed << std::setprecision(3) << (number / 1'000'000'000.0) << "B";
+    if (number >= 1'000'000'000'000'000'000) {
+        oss << std::fixed << std::setprecision(3) << (number / 1'000'000'000'000'000'000.0) << "Sp"; // septillion, anything past this is just wild
+    }
+    else if (number >= 1'000'000'000'000'000) {
+        oss << std::fixed << std::setprecision(3) << (number / 1'000'000'000'000'000.0) << "Sx"; // sextillion
+    }
+    else if (number >= 1'000'000'000'000) {
+        oss << std::fixed << std::setprecision(3) << (number / 1'000'000'000'000.0) << "Qn"; // quintillion
+    }
+    else if (number >= 1'000'000'000) {
+        oss << std::fixed << std::setprecision(3) << (number / 1'000'000'000.0) << "T"; // trillion
     }
     else if (number >= 1'000'000) {
-        oss << std::fixed << std::setprecision(3) << (number / 1'000'000.0) << "M";
+        oss << std::fixed << std::setprecision(3) << (number / 1'000'000.0) << "M"; // million
     }
     else if (number >= 1'000) {
-        oss << std::fixed << std::setprecision(3) << (number / 1'000.0) << "K";
+        oss << std::fixed << std::setprecision(3) << (number / 1'000.0) << "K"; // thousand
     }
     else {
         oss << format_with_commas(static_cast<long long>(number));
